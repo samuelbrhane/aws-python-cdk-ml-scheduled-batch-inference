@@ -10,6 +10,16 @@ and output data stored in Amazon S3.
 Failures are captured through CloudWatch Logs, CloudWatch Alarms, and SNS
 notifications.
 
+## 🖼️ DIAGRAMS
+
+### Architecture Diagram
+
+![ML-A1 Architecture Diagram](diagrams/ml-a1-diagram.png)
+
+### Services Used
+
+![ML-A1 Services Used](diagrams/services_used.png)
+
 ## 🚀 WHAT THIS PROJECT DOES
 
 - Runs batch machine learning inference on a fixed schedule
@@ -53,8 +63,10 @@ Execution flow:
 ```text
 .
 ├── diagrams/
-│   ├── ml-a1.drawio.xml
-│   └── ml-a1-diagram.png
+│   ├── ml-a1-diagram.drawio
+│   ├── ml-a1-diagram.mp4
+│   ├── ml-a1-diagram.png
+│   └── services_used.png
 ├── ml_a1/
 │   ├── __init__.py
 │   └── stack.py
@@ -67,6 +79,7 @@ Execution flow:
 ├── LICENSE
 ├── README.md
 └── requirements.txt
+
 ```
 
 ## 🛠️ USING THIS REPOSITORY
