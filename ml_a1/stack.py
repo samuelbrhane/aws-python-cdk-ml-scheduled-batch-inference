@@ -13,6 +13,7 @@ from aws_cdk import (
     aws_sagemaker as sagemaker,
     aws_ec2 as ec2,
     aws_stepfunctions_tasks as tasks,
+    aws_scheduler as scheduler,
 )
 
 class MlA1ScheduledBatchInferenceStack(Stack):
@@ -76,7 +77,6 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             "BatchInferenceModel",
             execution_role_arn=self.sagemaker_execution_role.role_arn,
             primary_container=sagemaker.CfnModel.ContainerDefinitionProperty(
-                # container image
                 image="public.ecr.aws/sagemaker/sagemaker-xgboost:1.7-1",
                 model_data_url=model_data_url,
             ),
@@ -138,7 +138,30 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             ),
         )
 
+        # EventBridge Scheduler
+        self.scheduler_role = iam.Role(
+            self,
+            "SchedulerStartExecutionRole",
+            assumed_by=iam.ServicePrincipal("scheduler.amazonaws.com"),
+        )
+
+        self.state_machine.grant_start_execution(self.scheduler_role)
+
+        # EventBridge Scheduler (schedule -> Step Functions)
+        self.schedule = scheduler.CfnSchedule(
+            self,
+            "BatchInferenceSchedule",
+            schedule_expression="rate(1 day)", 
+            flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
+                mode="OFF"
+            ),
+            target=scheduler.CfnSchedule.TargetProperty(
+                arn=self.state_machine.state_machine_arn,
+                role_arn=self.scheduler_role.role_arn,
+                input='{"source":"eventbridge-scheduler","pipeline":"ml-a1-batch"}',
+            ),
+        )
+
         
-        # EventBridge Scheduler trigger
         # CloudWatch logs + alarms
         # SageMaker model + batch transform integration
