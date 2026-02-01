@@ -52,16 +52,21 @@ Execution flow:
 
 ```text
 .
-├── app.py
-├── cdk.json
-├── requirements.txt
+├── diagrams/
+│   ├── ml-a1.drawio.xml
+│   └── ml-a1-diagram.png
 ├── ml_a1/
+│   ├── __init__.py
 │   └── stack.py
 ├── tests/
+│   ├── __init__.py
 │   └── test_stack.py
-├── diagrams/
-│   └── ml-a1.drawio.xml
-└── README.md
+├── .gitignore
+├── app.py
+├── cdk.json
+├── LICENSE
+├── README.md
+└── requirements.txt
 ```
 
 ## 🛠️ USING THIS REPOSITORY
