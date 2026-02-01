@@ -14,7 +14,7 @@ notifications.
 
 ---
 
-## ▶ WHAT THIS PROJECT DOES
+## 🚀 What this project does
 
 - Runs batch machine learning inference on a fixed schedule
 - Orchestrates the workflow using Step Functions
@@ -25,7 +25,7 @@ notifications.
 
 ---
 
-## ▶ WHY BATCH INFERENCE
+## 🤔 Why batch inference
 
 Batch inference is appropriate when:
 
@@ -36,7 +36,7 @@ Batch inference is appropriate when:
 
 ---
 
-## ▶ ARCHITECTURE OVERVIEW
+## 🧠 Architecture overview
 
 Execution flow:
 
@@ -48,36 +48,37 @@ Execution flow:
 
 ---
 
-## ▶ AWS SERVICES USED
+## 🧰 AWS services used
 
-- AWS CDK (Python) | Infrastructure as Code
-- Amazon S3 | Batch input and output storage
-- AWS Step Functions | Workflow orchestration
-- Amazon SageMaker | Model definition and Batch Transform
-- Amazon EventBridge | Scheduled execution
-- Amazon CloudWatch | Logs and alarms
-- Amazon SNS | Failure notifications
+- AWS CDK (Python) – Infrastructure as Code
+- Amazon S3 – Batch input and output storage
+- AWS Step Functions – Workflow orchestration
+- Amazon SageMaker – Model definition and Batch Transform
+- Amazon EventBridge Scheduler – Scheduled execution
+- Amazon CloudWatch – Logs and alarms
+- Amazon SNS – Failure notifications
 
 ---
 
-## ▶ REPOSITORY STRUCTURE
+## 📁 Repository structure
 
+```text
 .
 ├── app.py
 ├── cdk.json
 ├── requirements.txt
 ├── ml_a1/
-│ └── stack.py
+│   └── stack.py
 ├── tests/
-│ └── test_stack.py
+│   └── test_stack.py
 ├── diagrams/
-│ └── ml-a1.drawio.xml
+│   └── ml-a1.drawio.xml
 └── README.md
 
----
+--------------------------------------------------------------------------------
 
-## ▶ USING THIS REPOSITORY
-
+▶ USING THIS REPOSITORY
+--------------------------------------------------------------------------------
 This project can be reviewed, synthesized, and tested without an AWS account.
 
 Create and activate a virtual environment:
@@ -97,10 +98,10 @@ Run tests:
 
 pytest -q
 
----
+--------------------------------------------------------------------------------
 
-## ▶ DEPLOYMENT (OPTIONAL)
-
+▶ DEPLOYMENT (OPTIONAL)
+--------------------------------------------------------------------------------
 Deployment is not required to understand or evaluate this project.
 
 If you choose to deploy it, the following prerequisites apply:
@@ -111,10 +112,10 @@ If you choose to deploy it, the following prerequisites apply:
 
 npx aws-cdk@2.160.0 bootstrap
 
----
+--------------------------------------------------------------------------------
 
-## ▶ IMPORTANT DEPLOYMENT REQUIREMENTS
-
+▶ IMPORTANT DEPLOYMENT REQUIREMENTS
+--------------------------------------------------------------------------------
 This project intentionally uses placeholder values for the SageMaker model so
 that it can be synthesized safely without deployment.
 
@@ -128,18 +129,19 @@ To successfully deploy and run the batch inference job, you must:
 
 Default placeholder image:
 
-public.ecr.aws/sagemaker/sagemaker-xgboost:1.7-1
+   public.ecr.aws/sagemaker/sagemaker-xgboost:1.7-1
 
 If these requirements are not met, the stack may deploy but the Batch Transform
 job will fail at runtime.
 
----
+--------------------------------------------------------------------------------
 
-## ▶ DESIGN NOTES
-
+▶ DESIGN NOTES
+--------------------------------------------------------------------------------
 - Batch inference is used instead of real-time inference to optimize cost
 - Step Functions provides clear orchestration and failure handling
 - SNS and CloudWatch ensure failures are observable
 - S3 buckets use destroy-on-delete settings
 
 ================================================================================
+```
