@@ -19,6 +19,7 @@ from aws_cdk import (
     aws_cloudwatch_actions as cw_actions,
 )
 
+
 class MlA1ScheduledBatchInferenceStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -30,8 +31,10 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             versioned=True,
             encryption=s3.BucketEncryption.S3_MANAGED,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            
+            # change to RETAIN for prod
             removal_policy=RemovalPolicy.DESTROY,
-            auto_delete_objects=True,  
+            auto_delete_objects=True,
         )
 
         # S3 (output)
@@ -44,8 +47,18 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
         )
-        
-        
+
+        # a dedicated bucket for model artifacts
+        self.model_bucket = s3.Bucket(
+            self,
+            "ModelBucket",
+            versioned=True,
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            removal_policy=RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+        )
+
         # SNS for failures
         self.failure_topic = sns.Topic(
             self,
@@ -60,7 +73,7 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             retention=logs.RetentionDays.ONE_WEEK,
             removal_policy=RemovalPolicy.DESTROY,
         )
-        
+
         # IAM role used by SageMaker to read/write S3
         self.sagemaker_execution_role = iam.Role(
             self,
@@ -68,12 +81,14 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             assumed_by=iam.ServicePrincipal("sagemaker.amazonaws.com"),
         )
 
-        # Allow reading batch input + writing batch output
+        # Allow reading batch input + writing batch output + reading model artifacts
         self.input_bucket.grant_read(self.sagemaker_execution_role)
         self.output_bucket.grant_read_write(self.sagemaker_execution_role)
-        
+        self.model_bucket.grant_read(self.sagemaker_execution_role)
+
         # SageMaker Model
-        model_data_url = self.input_bucket.s3_url_for_object("model/model.tar.gz")
+        # Put your model artifact at: s3://<ModelBucket>/model/model.tar.gz
+        model_data_url = self.model_bucket.s3_url_for_object("model/model.tar.gz")
 
         self.model = sagemaker.CfnModel(
             self,
@@ -85,16 +100,25 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             ),
         )
 
-        
-        # Step Functions task: start a SageMaker Batch Transform job
+        # Step Functions
+        # If transform fails, publish to SNS
+        notify_failure = tasks.SnsPublish(
+            self,
+            "NotifyFailure",
+            topic=self.failure_topic,
+            subject="ML-A1 Batch Inference Pipeline Failed",
+            message=sfn.TaskInput.from_json_path_at("$"),
+        )
+
         transform_task = tasks.SageMakerCreateTransformJob(
             self,
             "RunBatchTransform",
+            integration_pattern=sfn.IntegrationPattern.RUN_JOB,
             transform_job_name=sfn.JsonPath.format(
                 "ml-a1-{}",
                 sfn.JsonPath.string_at("$$.Execution.Name"),
             ),
-            model_name=self.model.ref,
+            model_name=self.model.attr_model_name, 
             transform_input=tasks.TransformInput(
                 transform_data_source=tasks.TransformDataSource(
                     s3_data_source=tasks.TransformS3DataSource(
@@ -104,7 +128,10 @@ class MlA1ScheduledBatchInferenceStack(Stack):
                 )
             ),
             transform_output=tasks.TransformOutput(
-                s3_output_path=f"s3://{self.output_bucket.bucket_name}/output/",
+                s3_output_path=sfn.JsonPath.format(
+                    f"s3://{self.output_bucket.bucket_name}/output/" + "{}",
+                    sfn.JsonPath.string_at("$$.Execution.Name"),
+                ),
                 assemble_with=tasks.AssembleWith.LINE,
             ),
             transform_resources=tasks.TransformResources(
@@ -115,15 +142,18 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             max_payload=Size.mebibytes(6),
         )
 
-        # If transform fails, publish to SNS
-        notify_failure = tasks.SnsPublish(
-            self,
-            "NotifyFailure",
-            topic=self.failure_topic,
-            subject="ML-A1 Batch Inference Pipeline Failed",
-            message=sfn.TaskInput.from_text(
-                "ML-A1 batch inference pipeline failed. Check Step Functions logs for details."
-            ),
+        # Add retry for transient issues
+        transform_task.add_retry(
+            errors=[
+                "SageMaker.AmazonSageMakerException",
+                "SageMaker.ResourceLimitExceeded",
+                "SageMaker.ThrottlingException",
+                "States.Timeout",
+                "States.TaskFailed",
+            ],
+            interval=Duration.seconds(30),
+            backoff_rate=2.0,
+            max_attempts=3,
         )
 
         # Catch failures from the transform task
@@ -133,19 +163,19 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             result_path="$.error",
         )
 
-        definition = transform_task
         self.state_machine = sfn.StateMachine(
             self,
             "BatchInferenceStateMachine",
-            definition=definition,
-            timeout=Duration.minutes(30),
+            definition=transform_task,
+            timeout=Duration.minutes(90),  
             logs=sfn.LogOptions(
                 destination=self.sfn_log_group,
                 level=sfn.LogLevel.ALL,
             ),
+            tracing_enabled=True,
         )
 
-        # CloudWatch Alarm: notify on any failed execution
+        # CloudWatch Alarm
         self.failed_executions_alarm = cw.Alarm(
             self,
             "StateMachineFailedExecutionsAlarm",
@@ -170,11 +200,10 @@ class MlA1ScheduledBatchInferenceStack(Stack):
 
         self.state_machine.grant_start_execution(self.scheduler_role)
 
-        # EventBridge Scheduler (schedule -> Step Functions)
         self.schedule = scheduler.CfnSchedule(
             self,
             "BatchInferenceSchedule",
-            schedule_expression="rate(1 day)", 
+            schedule_expression="rate(1 day)",
             flexible_time_window=scheduler.CfnSchedule.FlexibleTimeWindowProperty(
                 mode="OFF"
             ),
@@ -184,4 +213,3 @@ class MlA1ScheduledBatchInferenceStack(Stack):
                 input='{"source":"eventbridge-scheduler","pipeline":"ml-a1-batch"}',
             ),
         )
-
