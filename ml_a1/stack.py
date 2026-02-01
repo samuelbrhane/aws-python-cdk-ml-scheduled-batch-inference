@@ -14,6 +14,8 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_stepfunctions_tasks as tasks,
     aws_scheduler as scheduler,
+    aws_cloudwatch as cw,
+    aws_cloudwatch_actions as cw_actions,
 )
 
 class MlA1ScheduledBatchInferenceStack(Stack):
@@ -138,6 +140,22 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             ),
         )
 
+        # CloudWatch Alarm: notify on any failed execution
+        self.failed_executions_alarm = cw.Alarm(
+            self,
+            "StateMachineFailedExecutionsAlarm",
+            metric=self.state_machine.metric_failed(),
+            threshold=1,
+            evaluation_periods=1,
+            datapoints_to_alarm=1,
+            treat_missing_data=cw.TreatMissingData.NOT_BREACHING,
+            alarm_description="Alarm when the ML-A1 batch inference Step Functions execution fails.",
+        )
+
+        self.failed_executions_alarm.add_alarm_action(
+            cw_actions.SnsAction(self.failure_topic)
+        )
+
         # EventBridge Scheduler
         self.scheduler_role = iam.Role(
             self,
@@ -162,6 +180,3 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             ),
         )
 
-        
-        # CloudWatch logs + alarms
-        # SageMaker model + batch transform integration
