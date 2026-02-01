@@ -10,7 +10,7 @@ and output data stored in Amazon S3.
 Failures are captured through CloudWatch Logs, CloudWatch Alarms, and SNS
 notifications.
 
-## 🚀 What this project does
+## 🚀 WHAT THIS PROJECT DOES
 
 - Runs batch machine learning inference on a fixed schedule
 - Orchestrates the workflow using Step Functions
@@ -19,7 +19,7 @@ notifications.
 - Surfaces failures via CloudWatch and SNS
 - Defines all infrastructure using AWS CDK (Python)
 
-## 🤔 Why batch inference
+## 🤔 WHY BATCH INFERENCE
 
 Batch inference is appropriate when:
 
@@ -28,7 +28,7 @@ Batch inference is appropriate when:
 - Large datasets must be processed efficiently
 - Cost optimization is important
 
-## 🧠 Architecture overview
+## 🧠 ARCHITECTURE OVERVIEW
 
 Execution flow:
 
@@ -38,7 +38,7 @@ Execution flow:
 4. Predictions are written back to S3
 5. Failures are logged and generate alerts through SNS
 
-## 🧰 AWS services used
+## 🧰 AWS SERVICES USED
 
 - AWS CDK (Python) – Infrastructure as Code
 - Amazon S3 – Batch input and output storage
@@ -48,7 +48,7 @@ Execution flow:
 - Amazon CloudWatch – Logs and alarms
 - Amazon SNS – Failure notifications
 
-## 📁 Repository structure
+## 📁 REPOSITORY STRUCTURE
 
 ```text
 .
@@ -64,7 +64,7 @@ Execution flow:
 └── README.md
 ```
 
-## ▶ Using this repository
+## 🛠️ USING THIS REPOSITORY
 
 This project can be reviewed, synthesized, and tested without an AWS account.
 
@@ -85,9 +85,7 @@ Run tests:
 
     pytest -q
 
-## ▶ Deployment (optional)
-
-Deployment is not required to understand or evaluate this project.
+## 🚨 DEPLOYMENT
 
 If you choose to deploy it, the following prerequisites apply:
 
@@ -97,7 +95,7 @@ If you choose to deploy it, the following prerequisites apply:
 
   npx aws-cdk@2.160.0 bootstrap
 
-## ▶ Important deployment requirements
+## ⚠️ IMPORTANT DEPLOYMENT REQUIREMENTS
 
 This project intentionally uses placeholder values for the SageMaker model so
 that it can be synthesized safely without deployment.
@@ -117,7 +115,7 @@ Default placeholder image:
 If these requirements are not met, the stack may deploy but the Batch Transform
 job will fail at runtime.
 
-## ▶ Design notes
+## 📝 DESIGN NOTES
 
 - Batch inference is used instead of real-time inference to optimize cost
 - Step Functions provides clear orchestration and failure handling
