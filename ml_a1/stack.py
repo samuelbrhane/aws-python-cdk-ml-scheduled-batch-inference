@@ -4,11 +4,11 @@ from constructs import Construct
 from aws_cdk import (
     Stack,
     RemovalPolicy,
+    Duration,
     aws_s3 as s3,
     aws_sns as sns,
     aws_logs as logs,
     aws_stepfunctions as sfn,
-    Duration,
     aws_iam as iam,
     aws_sagemaker as sagemaker,
     aws_ec2 as ec2,
@@ -103,12 +103,15 @@ class MlA1ScheduledBatchInferenceStack(Stack):
                 )
             ),
             transform_output=tasks.TransformOutput(
-                s3_output_path=f"s3://{self.output_bucket.bucket_name}/output/"
+                s3_output_path=f"s3://{self.output_bucket.bucket_name}/output/",
+                assemble_with=tasks.AssembleWith.LINE,
             ),
             transform_resources=tasks.TransformResources(
                 instance_count=1,
                 instance_type=ec2.InstanceType("ml.m5.large"),
             ),
+            max_concurrent_transforms=1,
+            max_payload=6,
         )
 
         # If transform fails, publish to SNS
@@ -116,6 +119,7 @@ class MlA1ScheduledBatchInferenceStack(Stack):
             self,
             "NotifyFailure",
             topic=self.failure_topic,
+            subject="ML-A1 Batch Inference Pipeline Failed",
             message=sfn.TaskInput.from_text(
                 "ML-A1 batch inference pipeline failed. Check Step Functions logs for details."
             ),
