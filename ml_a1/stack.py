@@ -5,6 +5,7 @@ from aws_cdk import (
     Stack,
     RemovalPolicy,
     Duration,
+    Size,
     aws_s3 as s3,
     aws_sns as sns,
     aws_logs as logs,
@@ -111,7 +112,7 @@ class MlA1ScheduledBatchInferenceStack(Stack):
                 instance_type=ec2.InstanceType("ml.m5.large"),
             ),
             max_concurrent_transforms=1,
-            max_payload=6,
+            max_payload=Size.mebibytes(6),
         )
 
         # If transform fails, publish to SNS
